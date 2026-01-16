@@ -6,6 +6,19 @@
 
 このプロジェクトは、Node.js + TypeScript + Viteで構築されたシンプルなカウンターアプリケーションです。CircleCIのSelf-Hosted Runnerを使用してCI/CDパイプラインを実行する方法を学ぶことができます。
 
+### プロジェクト構成
+
+- **フレームワーク**: Vite（ビルドツール）
+- **言語**: TypeScript
+- **テストフレームワーク**: Vitest
+- **テスト環境**: jsdom（ブラウザ環境のモック）
+
+### 機能
+
+- シンプルなカウンター機能（クリックでカウントアップ）
+- ユニットテスト（Vitest）
+- CircleCI Self-Hosted RunnerでのCI/CD実行
+
 ## 前提条件
 
 - CircleCIアカウント
@@ -40,6 +53,53 @@ jobs:
       - run: echo "Hi I'm on Runners!"
 ```
 
+## CircleCI設定の説明
+
+このプロジェクトのCircleCI設定（`.circleci/config.yml`）は以下のようになっています：
+
+```yaml
+version: 2.1
+
+orbs:
+  node: circleci/node@7.2.1
+
+workflows:
+  testing:
+    jobs:
+      - runner-test
+      - node/test:
+          pkg-manager: npm
+          run-command: test:ci
+
+jobs:
+  runner-test:
+    machine: true
+    resource_class: your-org/your-runner-name
+    steps:
+      - run: echo "Hi I'm on Runners!"
+```
+
+### 設定のポイント
+
+- **`orbs`**: CircleCI Node.js Orbを使用してNode.js環境をセットアップします
+- **`workflows`**: `testing`ワークフローで2つのジョブを実行します：
+  - `runner-test`: Self-Hosted Runner上で実行されるジョブ
+  - `node/test`: CircleCIのクラウド環境でテストを実行するジョブ（比較用）
+- **`machine: true`**: Machine Executorを使用します
+- **`resource_class`**: Self-Hosted Runnerのリソースクラス名を指定します（実際の値に置き換えてください）
+- **`steps`**: 実行するステップを定義します
+
+### 実際の設定例
+
+現在の設定では、`resource_class` が `hidetaka/first-local-runner` に設定されています。ご自身の環境に合わせて変更してください。
+
+## ワークフローの実行
+
+1. このリポジトリをCircleCIに接続
+2. コードをプッシュまたはマージ
+3. CircleCIのダッシュボードでジョブの実行を確認
+4. Self-Hosted Runner上でジョブが実行されることを確認
+
 ## ローカルでのセットアップ
 
 ### 1. リポジトリのクローン
@@ -69,11 +129,24 @@ npm run dev
 npm run build
 ```
 
-### 5. テストの実行
+ビルドされたファイルは `dist/` ディレクトリに出力されます。
+
+### 5. ビルドのプレビュー
 
 ```bash
-# テストを実行
+npm run preview
+```
+
+ビルドされたアプリケーションをローカルでプレビューできます。
+
+### 6. テストの実行
+
+```bash
+# テストを実行（ウォッチモード）
 npm test
+
+# CI用のテストを実行（一度だけ実行）
+npm run test:ci
 
 # テストUIを起動
 npm run test:ui
@@ -82,36 +155,7 @@ npm run test:ui
 npm run test:coverage
 ```
 
-## CircleCI設定の説明
-
-このプロジェクトのCircleCI設定（`.circleci/config.yml`）は以下のようになっています：
-
-```yaml
-version: 2.1
-workflows:
-  testing:
-    jobs:
-      - runner-test
-jobs:
-  runner-test:
-    machine: true
-    resource_class: your-org/your-runner-name
-    steps:
-      - run: echo "Hi I'm on Runners!"
-```
-
-### 設定のポイント
-
-- **`machine: true`**: Machine Executorを使用します
-- **`resource_class`**: Self-Hosted Runnerのリソースクラス名を指定します
-- **`steps`**: 実行するステップを定義します
-
-## ワークフローの実行
-
-1. このリポジトリをCircleCIに接続
-2. コードをプッシュまたはマージ
-3. CircleCIのダッシュボードでジョブの実行を確認
-4. Self-Hosted Runner上でジョブが実行されることを確認
+このプロジェクトでは、Vitestを使用してカウンター機能のテストを実行します。テストは `src/counter.test.ts` に定義されています。
 
 ## トラブルシューティング
 
@@ -133,15 +177,35 @@ jobs:
 - 依存関係が正しくインストールされているか確認（`npm install`を再実行）
 - `npm test`で詳細なエラーメッセージを確認
 
+## プロジェクト構造
+
+```
+cci-nodejs-self-host-runner/
+├── .circleci/
+│   └── config.yml          # CircleCI設定ファイル
+├── src/
+│   ├── counter.ts          # カウンター機能の実装
+│   ├── counter.test.ts     # カウンターのテスト
+│   ├── main.ts             # アプリケーションのエントリーポイント
+│   └── style.css           # スタイルシート
+├── public/                 # 静的ファイル
+├── dist/                   # ビルド出力（生成される）
+├── package.json            # プロジェクトの依存関係とスクリプト
+├── tsconfig.json           # TypeScript設定
+├── vitest.config.ts        # Vitest設定
+└── README.md               # このファイル
+```
+
 ## 次のステップ
 
 このデモプロジェクトを基に、以下のような拡張が可能です：
 
-- より複雑なビルドステップの追加
-- テストステップの追加
+- Self-Hosted Runner上でのビルドステップの追加
+- Self-Hosted Runner上でのテストステップの追加
 - デプロイステップの追加
 - 複数のRunnerリソースクラスの使用
 - 並列ジョブの実行
+- アーティファクトの保存と取得
 
 ## 参考資料
 
