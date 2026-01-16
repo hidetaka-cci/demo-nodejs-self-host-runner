@@ -1,18 +1,65 @@
+# ========================================
+# CircleCI Self-hosted Runner デモ設定
+# ========================================
+# このプロジェクトは、CircleCIのSelf-hosted Runner機能のデモンストレーション用です。
+# Self-hosted Runnerを使用することで、お客様のインフラストラクチャ上でCIジョブを実行できます。
+#
+# 📚 参考ドキュメント:
+# - Runner概要: https://circleci.com/docs/guides/execution-runner/runner-overview/
+# - Runner概念（Namespace/Resource Class）: https://circleci.com/docs/guides/execution-runner/runner-concepts/
+# - Machine Runnerインストール（Linux）: https://circleci.com/docs/guides/execution-runner/runner-installation-linux/
+# - Machine Runnerインストール（macOS）: https://circleci.com/docs/guides/execution-runner/runner-installation-mac/
+# - Container Runnerインストール（Kubernetes）: https://circleci.com/docs/guides/execution-runner/container-runner-installation/
+# - Machine Runner手動インストール: https://circleci.com/docs/guides/execution-runner/machine-runner-3-manual-installation/
+#
+# 🚀 セットアップ手順:
+# 1. CircleCIのWebコンソールから「Self-Hosted Runners」セクションにアクセス
+# 2. 新しいRunner Resource Classを作成（例: <namespace>/<resource-class-name>）
+# 3. 提供されるトークンを使用してRunnerエージェントをインストール
+# 4. 下記の`resource_class`を作成したResource Classに更新
+# ========================================
+
 version: 2.1
 
+# Orbs: 再利用可能な設定パッケージ
 orbs:
-  node: circleci/node@7.2.1
+  node: circleci/node@7.2.1  # Node.jsビルド・テスト用のorb
 
+# ワークフロー: ジョブの実行順序を定義
 workflows:
   testing:
     jobs:
+      # Self-hosted Runnerで実行されるカスタムジョブ
       - runner-test
+      
+      # CircleCI標準のクラウド環境で実行されるNode.jsテストジョブ（比較用）
       - node/test:
           pkg-manager: npm
           run-command: test:ci
+
+# ジョブ定義
 jobs:
+  # Self-hosted Runner デモジョブ
   runner-test:
+    # machine: trueは、Docker Executorではなく専用のマシンで実行することを指定
     machine: true
+    
+    # ⚠️ 重要: resource_classを実際に作成したRunner Resource Classに置き換えてください
+    # フォーマット: <namespace>/<resource-class-name>
+    # 例: your-org/my-runner, your-company/production-runner
     resource_class: hidetaka/first-local-runner
+    
     steps:
+      # Self-hosted Runner上で実行される簡単なテストコマンド
       - run: echo "Hi I'm on Runners!"
+      
+      # 追加のステップ例（必要に応じてコメントを外して使用）:
+      # - checkout  # リポジトリのコードをチェックアウト
+      # - run: 
+      #     name: システム情報の表示
+      #     command: |
+      #       echo "Hostname: $(hostname)"
+      #       echo "OS: $(uname -a)"
+      # - run:
+      #     name: カスタムビルド処理
+      #     command: npm ci && npm run build
