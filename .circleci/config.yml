@@ -1,12 +1,18 @@
 version: 2.1
+
+orbs:
+  node: circleci/node@7.2.1
+
 workflows:
   testing:
     jobs:
       - runner-test
+      - node/test:
+          pkg-manager: npm
+          run-command: test:ci
 jobs:
   runner-test:
     machine: true
     resource_class: hidetaka/first-local-runner
     steps:
       - run: echo "Hi I'm on Runners!"
-
