@@ -29,8 +29,11 @@ orbs:
 workflows:
   testing:
     jobs:
-      # Self-hosted Runnerで実行されるカスタムジョブ
-      - runner-test
+      # Self-hosted Runnerで実行される簡単なデモジョブ
+      - runner-hello
+      
+      # Self-hosted RunnerでNode.js Orbを使ってテストを実行するジョブ
+      - runner-test-with-orb
       
       # CircleCI標準のクラウド環境で実行されるNode.jsテストジョブ（比較用）
       - node/test:
@@ -39,8 +42,9 @@ workflows:
 
 # ジョブ定義
 jobs:
-  # Self-hosted Runner デモジョブ
-  runner-test:
+  # Self-hosted Runner 簡単なデモジョブ
+  # Runnerが正しく動作しているかを確認するための最小限のジョブ
+  runner-hello:
     # machine: trueは、Docker Executorではなく専用のマシンで実行することを指定
     machine: true
     
@@ -54,12 +58,39 @@ jobs:
       - run: echo "Hi I'm on Runners!"
       
       # 追加のステップ例（必要に応じてコメントを外して使用）:
-      # - checkout  # リポジトリのコードをチェックアウト
       # - run: 
       #     name: システム情報の表示
       #     command: |
       #       echo "Hostname: $(hostname)"
       #       echo "OS: $(uname -a)"
+
+  # Self-hosted Runner + Node.js Orb を使ったテストジョブ
+  # node/testジョブと同等の処理をSelf-hosted Runner上で実行
+  runner-test-with-orb:
+    # machine: trueは、Docker Executorではなく専用のマシンで実行することを指定
+    machine: true
+    
+    # ⚠️ 重要: resource_classを実際に作成したRunner Resource Classに置き換えてください
+    # フォーマット: <namespace>/<resource-class-name>
+    # 例: your-org/my-runner, your-company/production-runner
+    resource_class: hidetaka/first-local-runner
+    
+    steps:
+      # リポジトリのコードをチェックアウト
+      - checkout
+      
+      # Node.js Orbのコマンドを使用して依存関係をインストール
+      # node/install-packagesは、package-lock.json/yarn.lock等を検出し、
+      # 適切なパッケージマネージャーで依存関係をインストールします
+      - node/install-packages:
+          pkg-manager: npm
+      
+      # クラウド環境と同じテストコマンドを実行
+      - run:
+          name: テスト実行
+          command: npm run test:ci
+      
+      # 追加のステップ例（必要に応じてコメントを外して使用）:
       # - run:
       #     name: カスタムビルド処理
-      #     command: npm ci && npm run build
+      #     command: npm run build
