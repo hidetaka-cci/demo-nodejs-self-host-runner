@@ -79,29 +79,54 @@ jobs:
       # リポジトリのコードをチェックアウト
       - checkout
 
-      # fnm (ユーザー領域) の Node/npm を、非ログインシェル環境でも確実に使えるように初期化
-      # 重要: orb の node/install-packages より前に実行して npm を解決可能にする
+      # ----------------------------------------
+      # 初心者向けメモ: なぜ「Node/npmの初期化」が必要？
+      # ----------------------------------------
+      # 前提: Node.js を fnm/nodenv/asdf/nvm 等の “バージョン管理ツール” で入れている場合、
+      #       `node`/`npm` はツールが PATH を書き換えることで利用可能になります。
+      #
+      # self-hosted runner (machine: true) の各 step は /bin/bash で実行されますが、
+      # ログインシェルの初期化 (.zshrc / .bashrc 等) は通常読み込まれません。
+      # その結果、バージョン管理ツールが追加する PATH が反映されず、
+      # ローカルでは `npm -v` が通っていても CI では `npm: command not found` になり得ます。
+      #
+      # このデモでは Node/npm を fnm（ユーザー領域）で管理する想定なので、
+      # まず「fnm を PATH に入れる」→「fnm env を読み込む」→「npm が見えるか確認」
+      # を行い、以降の step（orb の step 含む）でも有効になるよう $BASH_ENV に書き込みます。
+      #
+      # ⚠️ 注意: 受講者が使うツールは環境によって異なります。
+      # その場合は、この step の “初期化部分” を自分の環境に合わせて置き換えてください。
+      # - バージョン管理ツール利用: そのツールの初期化（PATH追加 / env出力のeval等）を実行
+      # - バージョン管理ツール不使用: `node`/`npm` があるディレクトリを PATH に追加
+      #
+      # 重要: orb の `node/install-packages` より前に、npm が解決できる状態にすること。
+      # ----------------------------------------
       - run:
-          name: Initialize fnm (Node/npm)
+          name: Initialize Node/npm (demo uses fnm)
           command: |
             set -euo pipefail
 
-            # fnm の配置は環境により異なるため、まずは一般的な場所を PATH に追加
+            # 1) fnm の実行ファイルが見えるようにする
+            #    ※ fnmのインストール場所は環境により異なりますが、このデモは $HOME/.fnm を想定します。
             if [ -d "$HOME/.fnm" ]; then
               echo 'export PATH="$HOME/.fnm:$PATH"' >> "$BASH_ENV"
             fi
 
-            # 各ステップ開始時に BASH_ENV が読み込まれるため、ここに fnm env を永続化
-            # bash で動くことを明示（CircleCI の run は /bin/bash が多い）
+            # 2) fnm が用意する「Node/npmのPATH設定」を読み込む
+            #    - CircleCI では、各 step の開始時に $BASH_ENV が source されます。
+            #      ここに書き込むと、次の step（orbのstep含む）でも設定が引き継がれます。
+            #    - `fnm env --shell bash` は bash 用の export を出力します。
             echo 'if command -v fnm >/dev/null 2>&1; then eval "$(fnm env --shell bash)"; fi' >> "$BASH_ENV"
 
-            # このステップ内でも有効化して検証ログを出す
+            # 3) この step 内でも有効化して、ログで確認できるように出力
             source "$BASH_ENV"
-            command -v fnm
+            echo "[debug] PATH=$PATH"
+            echo "[debug] fnm=$(command -v fnm || true)"
+            echo "[debug] node=$(command -v node || true)"
+            echo "[debug] npm=$(command -v npm || true)"
             fnm --version
             node -v
             npm -v
-            which npm
       
       # Node.js Orbのコマンドを使用して依存関係をインストール
       # node/install-packagesは、package-lock.json/yarn.lock等を検出し、
