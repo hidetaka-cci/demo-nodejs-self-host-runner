@@ -78,6 +78,30 @@ jobs:
     steps:
       # リポジトリのコードをチェックアウト
       - checkout
+
+      # fnm (ユーザー領域) の Node/npm を、非ログインシェル環境でも確実に使えるように初期化
+      # 重要: orb の node/install-packages より前に実行して npm を解決可能にする
+      - run:
+          name: Initialize fnm (Node/npm)
+          command: |
+            set -euo pipefail
+
+            # fnm の配置は環境により異なるため、まずは一般的な場所を PATH に追加
+            if [ -d "$HOME/.fnm" ]; then
+              echo 'export PATH="$HOME/.fnm:$PATH"' >> "$BASH_ENV"
+            fi
+
+            # 各ステップ開始時に BASH_ENV が読み込まれるため、ここに fnm env を永続化
+            # bash で動くことを明示（CircleCI の run は /bin/bash が多い）
+            echo 'if command -v fnm >/dev/null 2>&1; then eval "$(fnm env --shell bash)"; fi' >> "$BASH_ENV"
+
+            # このステップ内でも有効化して検証ログを出す
+            source "$BASH_ENV"
+            command -v fnm
+            fnm --version
+            node -v
+            npm -v
+            which npm
       
       # Node.js Orbのコマンドを使用して依存関係をインストール
       # node/install-packagesは、package-lock.json/yarn.lock等を検出し、
